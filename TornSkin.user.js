@@ -164,6 +164,7 @@
 //----------------------------------------------//
 //              FixList                         //
 //----------------------------------------------//    4 stev w luv 
+
 // control panel changes chat buttons from fixed position - bottom right
 // control panel resizes incorrectly into home button top right
 // modernize control panel - shadows etc
@@ -172,3 +173,16 @@
 // fade transition background option
 // reset button for backgrounds
 // button to choose between static background and image vs slideshow
+
+//----------------------------------------------//
+//              Ideas                           //
+//----------------------------------------------//    4 stev w h8 
+
+// keyboard shortcut to toggle panel
+// could utilize a wallpaper API and give options to choose from for stock or slideshow
+// ability to preview your wallpapers
+// add to menu bar to drop down
+// cursor theme
+// performance optimizer - toggle that can reduce opacity for background, or reduce opacity for site itself
+// resource intesive features ex. particle effects animated snow or something 
+// advanced settings panel
