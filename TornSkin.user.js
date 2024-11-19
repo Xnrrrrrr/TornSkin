@@ -117,6 +117,7 @@
 					);
 				});
 			});
+            
 
 		document
 			.getElementById("clear-slideshow")
@@ -125,6 +126,14 @@
 				localStorage.removeItem("slideshowImages");
 				applyStyles();
 			});
+
+        document.addEventListener("keydown", (e) => {
+                if (e.ctrlKey && e.key === "q") { // Ctrl + B to toggle
+                    const panel = document.getElementById("background-settings");
+                    if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+                }
+            });
+                  
 
 		document
 			.getElementById("slideshow-toggle")
