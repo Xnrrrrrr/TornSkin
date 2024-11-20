@@ -13,29 +13,46 @@
     'use strict';
 
     let backgroundImage =
-		localStorage.getItem("backgroundImage") ||
-		"https://4kwallpapers.com/images/walls/thumbs_3t/19127.jpg";
+        localStorage.getItem("backgroundImage") ||
+        "https://4kwallpapers.com/images/walls/thumbs_3t/19127.jpg";
     let isMenuOpen = false;
 
     const injectHTML = () => {
     const targetElement = document.querySelector('.settings-menu');
     const element = `
-    <li id="tornskin-menu" style="width: 100%; height: 34px; display: flex; align-items: center; cursor: pointer;">
-        <div style="display: flex; align-items: center; gap: 8px;"> <!-- Flex container for the icon and text -->
-            <!-- Your Updated SVG Icon with new fill color -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="default___XXAGt" fill="#fff" stroke="transparent" stroke-width="0" width="28" height="28" viewBox="-6 -4 28 28">
-                <path fill="#ff6347" d="M13.88,12.06c-2.29-.52-4.43-1-3.39-2.94C13.63,3.18,11.32,0,8,0S2.36,3.3,5.51,9.12c1.07,2-1.15,2.43-3.39,2.94C.13,12.52,0,13.49,0,15.17V16H16v-.83C16,13.49,15.87,12.52,13.88,12.06Z"></path>
-            </svg>
-            <span style="pointer-events: none; color: #ccc; user-select: none;">TornSkin</span>
+    <li id="tornskin-menu" style="width: 100%; height: 34px; display: flex; align-items: center; cursor: pointer; transition: background-color 0.3s ease;">
+        <div class="icon-wrapper" style="width: 32px; text-align: center; display: inline-block;">
+            <!-- Using image for external SVG -->
+            <img src="https://www.svgrepo.com/show/503001/camera.svg" width="28" height="34" style="padding-left: 5px; transition: filter 0.3s ease;" />
+        </div>
+        <div class="link-text" style="display: inline-block; color: #ccc; user-select: none; line-height: 34px; vertical-align: middle; font-family: Arial, Helvetica, sans-serif; font-size: 12px; transition: color 0.3s ease;">
+            TornSkin
         </div>
     </li>
     `;
     targetElement.insertAdjacentHTML("afterbegin", element);
     const menuSpan = document.getElementById('tornskin-menu');
-        if (menuSpan) {
-            menuSpan.addEventListener('click', toggleMenu);
-        }
-}
+    if (menuSpan) {
+        menuSpan.addEventListener('click', toggleMenu);
+    }
+
+    // Add hover effects using JavaScript by applying a class
+    const tornskinMenu = document.getElementById('tornskin-menu');
+    tornskinMenu.addEventListener('mouseenter', () => {
+        tornskinMenu.style.backgroundColor = '#333';// Change background color on hover
+        tornskinMenu.querySelector('.link-text').style.color = '#fff';// Change text color on hover
+        tornskinMenu.querySelector('.icon-wrapper img').style.filter = 'brightness(1.2)';// Brighten the icon on hover
+    });
+
+    tornskinMenu.addEventListener('mouseleave', () => {
+        tornskinMenu.style.backgroundColor = '';// Reset background color
+        tornskinMenu.querySelector('.link-text').style.color = '#ccc';// Reset text color
+        tornskinMenu.querySelector('.icon-wrapper img').style.filter = 'brightness(1)';// Reset icon brightness
+    });
+};
+
+
+
 
     const setBackground = () => {
         const targetElement = document.querySelector('.d');
@@ -51,29 +68,97 @@
         const existingPanel = document.getElementById('background-settings');
         if (!existingPanel) {
             const menu = `
-            <div id="background-settings" style="position: fixed; top: 10px; left: 10px; background: rgba(22, 22, 22, 0.8); color: white; z-index: 99999999999999; border-radius: 5px; width: 250px; overflow-y: auto; display: none;">
+            <div id="background-settings" style="position: fixed; top: 10px; left: 10px; background: rgba(22, 22, 22, 0.8); color: white; z-index: 99999999999999; border-radius: 5px; width: 300px; overflow-y: auto; display: none;">
                 <div style="display: flex; justify-content: center; flex-direction: column">
                     <p>Background Settings</p>
                     <label for="bg-opacity">Opacity:</label>
-
                     <label for="bg-url">Image URL:</label>
                     <input type="text" id="bg-url" placeholder="Enter image URL" value="${backgroundImage}">
                     <button id="apply-bg">Set Background</button>
 
-                    <label for="upload-images">Upload Images:</label>
-                    <input type="file" id="upload-images" accept="image/*" multiple>
-                    <button id="clear-slideshow">Clear Slideshow</button>
+                    <div style="margin-top: 10px;">
+                        <label for="bg-preview">Preview:</label>
+                        <img id="bg-preview" src="${backgroundImage}" style="width: 100%; height: auto; border-radius: 5px;">
+                    </div>
 
-                    <label for="slideshow-toggle">Enable Slideshow:</label>
+                    <label for="upload-images" style="margin-top: 10px;">Upload Images:</label>
+                    <input type="file" id="upload-images" accept="image/*" multiple>
+                    <button id="clear-slideshow" style="margin-top: 10px;">Clear Slideshow</button>
+
+                    <label for="slideshow-toggle" style="margin-top: 10px;">Enable Slideshow:</label>
 
                     <label for="slideshow-interval">Slideshow Interval (ms):</label>
-                    <button id="apply-slideshow">Apply Slideshow</button>
+                    <button id="apply-slideshow" style="margin-top: 10px;">Apply Slideshow</button>
+
+                    <div id="saved-images-container" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 5px;">
+                        <!-- Saved images will be displayed here -->
+                    </div>
                 </div>
             </div>
-        `;
+            `;
             document.body.insertAdjacentHTML("beforeend", menu);
         }
     };
+
+    // Update preview and background settings
+    const updatePreview = () => {
+        const previewImg = document.getElementById('bg-preview');
+        previewImg.src = backgroundImage; // Update the preview with the current background image
+    };
+
+    // Update the saved images gallery
+    const updateSavedImages = () => {
+        const savedImagesContainer = document.getElementById('saved-images-container');
+        savedImagesContainer.innerHTML = ''; // Clear the current gallery
+        const savedImages = JSON.parse(localStorage.getItem('savedImages')) || [];
+
+        savedImages.forEach(image => {
+            const imgElement = document.createElement('img');
+            imgElement.src = image;
+            imgElement.style.width = '80px';
+            imgElement.style.height = 'auto';
+            imgElement.style.borderRadius = '5px';
+            imgElement.style.cursor = 'pointer';
+            imgElement.addEventListener('click', () => {
+                backgroundImage = image;
+                localStorage.setItem('backgroundImage', backgroundImage);
+                setBackground(); // Apply the new background image
+                updatePreview(); // Update the preview
+            });
+            savedImagesContainer.appendChild(imgElement);
+        });
+    };
+
+    // Handle background application from the input field
+    const applyBackgroundFromInput = () => {
+        const bgUrl = document.getElementById('bg-url').value;
+        backgroundImage = bgUrl;
+        localStorage.setItem('backgroundImage', backgroundImage);
+        setBackground();
+        updatePreview();
+    };
+
+    // Handle image uploads
+    const handleImageUpload = (e) => {
+        const files = e.target.files;
+        for (let file of files) {
+            const reader = new FileReader();
+            reader.onload = (function(f) {
+                return function(e) {
+                    // Save the uploaded image URL in localStorage
+                    const savedImages = JSON.parse(localStorage.getItem('savedImages')) || [];
+                    savedImages.push(e.target.result);
+                    localStorage.setItem('savedImages', JSON.stringify(savedImages));
+                    updateSavedImages(); // Update saved images gallery
+                };
+            })(file);
+            reader.readAsDataURL(file); // Convert file to a data URL
+        }
+    };
+
+    // Event listeners for control panel actions
+    document.getElementById('apply-bg')?.addEventListener('click', applyBackgroundFromInput);
+    document.getElementById('upload-images')?.addEventListener('change', handleImageUpload);
 
     document.addEventListener("keydown", (e) => {
         if (e.ctrlKey && e.key === "b") { // Ctrl + B to toggle
@@ -90,26 +175,32 @@
         }
     };
 
-
     injectHTML();
     setBackground();
     createMenu();
-
+    updateSavedImages(); // Load the saved images when the page loads
 
 })();
+
 
 //----------------------------------------------//
 //              FixList                         //
 //----------------------------------------------//    4 stev w luv
 
-// control panel changes chat buttons from fixed position - bottom right
-// control panel resizes incorrectly into home button top right
-// modernize control panel - shadows etc
-// features to be added - background image preview
-// random background button on control panel
-// fade transition background option
-// reset button for backgrounds
-// button to choose between static background and image vs slideshow
+// control panel changes chat buttons from fixed position - bottom right ✅
+// fix positoning on SVG ✅
+// add check box to icon ❌
+// add hover effect to SVG ❌
+// add hover effect to TornSkin✅
+// control panel resizes incorrectly into home button top right ❌
+// add preview and select feature within control panel ❌
+// modernize control panel - shadows etc ❌
+// features to be added - background image preview ❌
+// random background button on control panel ❌
+// fade transition background option ❌
+// reset button for backgrounds ❌
+// button to choose between static background and image vs slideshow ❌
+// control panel does not maintian  persistance upon webpage actions ❌
 
 //----------------------------------------------//
 //              Ideas                           //
