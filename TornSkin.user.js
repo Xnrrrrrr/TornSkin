@@ -70,6 +70,14 @@
         }
     };
 
+    document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "b") { // Ctrl + B to toggle
+            const panel = document.getElementById("background-settings");
+            if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+        }
+    });
+    
+
     const toggleMenu = () => {
         isMenuOpen = !isMenuOpen;
         const panel = document.getElementById('background-settings');
