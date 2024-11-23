@@ -509,8 +509,6 @@
         if (slideshowEnabled) {
             startSlideshow();
             slider.classList.add('active');
-        } else {
-            stopSlideshow();
         }
     }
 
