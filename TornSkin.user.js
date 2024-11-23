@@ -17,7 +17,7 @@
     let opacity = parseFloat(localStorage.getItem("bgOpacity")) || 1;
     let savedBackgroundImages = JSON.parse(localStorage.getItem("savedBackgroundImages")) || [{name: "Default", url: "https://4kwallpapers.com/images/walls/thumbs_3t/19127.jpg"}];
     let slideshowTimer = JSON.parse(localStorage.getItem("slideshowTimer")) || 10000; // ms
-    let slideshowEnabled = localStorage.getItem("slideshowEnabled") || false;
+    let slideshowEnabled = localStorage.getItem("slideshowEnabled") === "true" || false;
     let slideshowInterval = null; // slideshow interval ID
 
     const injectHTML = () => {
@@ -124,14 +124,13 @@
 
                         <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
                             <label>Toggle Slideshow:</label>
-                            <div id="slideshow-toggle" class="custom-slider ${!slideshowEnabled ? "active" : ""}">
+                            <div id="slideshow-toggle" class="custom-slider ${slideshowEnabled ? "active" : ""}">
                                 <div class="slider-thumb"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>`;
-            console.log(slideshowEnabled);
             document.body.insertAdjacentHTML("beforeend", menu);
 
             document.getElementById('opacity-slider').addEventListener('input', updateOpacity);
@@ -505,6 +504,16 @@
         setBackground();
     };
 
+    const initSlideshow = () => {
+        const slider = document.getElementById('slideshow-toggle');
+        if (slideshowEnabled) {
+            startSlideshow();
+            slider.classList.add('active');
+        } else {
+            stopSlideshow();
+        }
+    }
+
     document.addEventListener("keydown", (e) => {
         if (e.ctrlKey && e.key === "b") { // Ctrl + B to toggle
             const panel = document.getElementById("background-settings");
@@ -515,13 +524,8 @@
     injectHTML();
     setBackground();
     createMenu();
-    if (slideshowEnabled && savedBackgroundImages.length >= 2) {
-        startSlideshow();
-        const slider = document.getElementById('slideshow-toggle');
-        slider.classList.add('active');
-    }
+    initSlideshow();
 })();
-
 
 //----------------------------------------------//
 //              FixList                         //
