@@ -12,11 +12,102 @@
 (function() {
     'use strict';
 
+    const style = document.createElement('style');
+            style.textContent = `
+            .custom-slider {
+                position: relative;
+                width: 50px;
+                height: 25px;
+                background: #ccc;
+                border-radius: 15px;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+
+            .custom-slider.active {
+                background: #28a745;
+            }
+
+            .slider-thumb {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 21px;
+                height: 21px;
+                background: white;
+                border-radius: 50%;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                transition: left 0.3s;
+            }
+
+            .custom-slider.active .slider-thumb {
+                left: 25px;
+            }
+
+            .custom-dropdown {
+                position: relative;
+                width: 100%;
+                background: linear-gradient(0deg, #333, #444);
+                color: #ddd;
+                border: 1px solid whitesmoke;
+                border-radius: 5px;
+            }
+
+            .dropdown-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 10px;
+                cursor: pointer;
+            }
+
+            .dropdown-header:hover {
+                background: #555;
+                border-radius: 5px;
+            }
+
+            .dropdown-list {
+                position: absolute;
+                top: calc(100% - 2px);
+                left: -1px;
+                width: 100%;
+                background: linear-gradient(0deg, #333, #444);
+                border: 1px solid whitesmoke;
+                border-top: none;
+                border-radius: 0 0 5px 5px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 999;
+            }
+
+            .dropdown-item-apply,
+            .dropdown-item-clear {
+                padding: 5px 10px;
+                cursor: pointer;
+            }
+
+            .dropdown-item-apply:hover,
+            .dropdown-item-clear:hover {
+                background: #555;
+            }
+
+            .arrow {
+                font-size: 12px;
+                transition: transform 0.3s ease;
+            }
+
+            .arrow.open {
+                transform: rotate(90deg);
+            }`;
+
+    document.head.appendChild(style);
+
     let backgroundImage = localStorage.getItem("backgroundImage");
     let isMenuOpen = false;
     let opacity = parseFloat(localStorage.getItem("bgOpacity")) || 1;
+    let selectedImageApply;
     let savedBackgroundImages = JSON.parse(localStorage.getItem("savedBackgroundImages")) || [{name: "Default", url: "https://4kwallpapers.com/images/walls/thumbs_3t/19127.jpg"}];
-    let slideshowTimer = JSON.parse(localStorage.getItem("slideshowTimer")) || 10000; // ms
+    let slideshowTimer = JSON.parse(localStorage.getItem("slideshowTimer")) || 10000; // In ms; min = 10000
     let slideshowEnabled = localStorage.getItem("slideshowEnabled") === "true" || false;
     let slideshowInterval = null; // slideshow interval ID
 
@@ -47,6 +138,19 @@
         }
         const checkbox = document.getElementById('tornskin-menu-state');
         updateCheckboxState(checkbox);
+
+        document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key === "b") { // Ctrl + B to toggle
+                const panel = document.getElementById("background-settings");
+                if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+                if (panel.style.display === "block") {
+                    isMenuOpen = true;
+                } else {
+                    isMenuOpen = false;
+                }
+                updateCheckboxState(checkbox);
+            }
+        });
     }
 
     const updateCheckboxState = (checkbox) => {
@@ -58,6 +162,7 @@
     const setBackground = () => {
         const targetElement = document.querySelector('.d');
         if (targetElement) {
+            targetElement.style.transition = "background-image 0.5s ease-in-out";
             targetElement.style.backgroundImage = `url('${backgroundImage}')`;
             targetElement.style.backgroundSize = "cover";
             targetElement.style.backgroundAttachment = "fixed";
@@ -82,48 +187,58 @@
         const existingPanel = document.getElementById('background-settings');
         if (!existingPanel) {
             const menu = `
-            <div id="background-settings" style="position: fixed; top: 10px; left: 10px; background: rgba(22, 22, 22, 0.8); color: white; z-index: 99999999999999; border-radius: 5px; width: 250px; overflow-y: auto; display: none;">
+            <div id="background-settings" style="position: fixed; top: 10px; left: 10px; background: var(--default-bg-panel-color); color: white; z-index: 99999999999999; border-radius: 5px; width: 250px; overflow-y: auto; display: none;">
                 <div style="position: relative; display: flex; flex-direction: column; padding: 10px;">
                     <button id="close-menu" style="position: absolute; top: 5px; right: 5px; background: transparent; border: none; color: white; font-size: 22px; cursor: pointer;">&times;</button>
-                    <p style="width: 100%; text-align: center; font-weight: bolder; font-size: 18px; margin-bottom: 10px;">Background Settings</p>
+                    <p style="width: 100%; text-align: center; font-weight: bolder; font-size: 18px; margin-bottom: 10px; color: #999">Background Settings</p>
 
-                    <div style="border: 1px whitesmoke solid; padding: 5px; margin-bottom: 10px;">
-                        <label for="opacity-slider" id="opacity-label">Torn Opacity: ${opacity}</label>
+                    <div style="border: 1px whitesmoke solid; padding: 5px; margin-bottom: 10px; color: var(--default-color)">
+                        <label for="opacity-slider" id="opacity-label" style="color: var(--default-color)">Torn Opacity: ${opacity}</label>
                         <input type="range" id="opacity-slider" min="0.4" max="1" step="0.05" value="${opacity}" style="width: 100%;">
                     </div>
 
                     <div style="border: 1px whitesmoke solid; padding: 5px; margin-bottom: 10px; display=flex; flex-direction: column;">
-                        <label for="bg-name">Background Name:</label>
-                        <input type="text" id="bg-name" placeholder="Enter background name" value="" style="margin-bottom: 10px; width: 100%;">
+                        <label for="bg-name" color: style="color: var(--default-color)">Background Name:</label>
+                        <input type="text" id="bg-name" placeholder="Enter background name" value="" style="margin-bottom: 10px; width: calc(100% - 6px); background: linear-gradient(0deg, #333, #444); color: #ddd; padding: 3px; border-radius: 5px; border: 1px solid whitesmoke;">
 
-                        <label for="bg-url">Save an Image (URL):</label>
-                        <input type="text" style="margin-bottom: 10px; width: 100%;" id="bg-url" placeholder="ex: https://example.com/image.jpg">
-                        <p style="text-align: center; margin-bottom: 10px;">OR</p>
+                        <label for="bg-url" style="color: var(--default-color)">Save an Image (URL):</label>
+                        <input type="text" style="margin-bottom: 10px; width: calc(100% - 6px); background: linear-gradient(0deg, #333, #444); color: #ddd; padding: 3px; border-radius: 5px; border: 1px solid whitesmoke;" id="bg-url" placeholder="ex: https://example.com/image.jpg">
+                        <p style="text-align: center; margin-bottom: 10px; color: var(--default-color)">OR</p>
                         <input style="margin-bottom: 10px;" type="file" id="upload-bg-images" accept="image/*">
                         <button id="remove-uploaded-file" style="margin-bottom: 10px; margin-top: -5px; color: #ff5555; cursor: pointer; width: 100%; display: none;">Remove File</button>
 
                         <button id="save-bg" style="padding-bottom: 10px; margin-bottom: 5px; cursor: pointer; color: #ccc; width: 100%; border-bottom: 1px whitesmoke dotted;">Save Background</button>
 
-                        <label for="select-bg">Set Background:</label>
-                        <select id="select-bg" style="margin-bottom: 10px; width: 100%;">
-                             ${savedBackgroundImages.length ? savedBackgroundImages.map((images, index) => `<option value="${images.url}">${images.name}</option>`).join('') : '<option value="">No backgrounds saved</option>'}
-                        </select>
+                        <div class="custom-dropdown" style="margin-bottom: 10px;">
+                            <div class="dropdown-header" id="dropdown-header-apply">
+                                <span id="selected-value-apply">Select Background</span>
+                                <span class="arrow" id="dropdown-arrow-apply">▶</span>
+                            </div>
+                            <ul class="dropdown-list" id="dropdown-list-apply" style="display: none;">
+                                ${savedBackgroundImages.map((image, index) => `<li class="dropdown-item-apply" data-value="${image.url}" id="dropdown-item-${index}-apply">${image.name}</li>`).join('')}
+                            </ul>
+                        </div>
                         <button id="apply-bg" style="padding-bottom: 10px; margin-bottom: 5px; cursor: pointer; color: #ccc; width: 100%; border-bottom: 1px whitesmoke dotted;">Apply Background</button>
 
-                        <label for="clear-bg">Remove a Background:</label>
-                        <select id="clear-bg" style="margin-bottom: 10px; width: 100%;">
-                             ${savedBackgroundImages.length ? savedBackgroundImages.map((images, index) => `<option value="${images.name}">${images.name}</option>`).join('') : '<option value="">No saved backgrounds to remove</option>'}
-                        </select>
+                        <div class="custom-dropdown" style="margin-bottom: 10px;">
+                            <div class="dropdown-header" id="dropdown-header-clear">
+                                <span id="selected-value-clear">Remove a Background</span>
+                                <span class="arrow" id="dropdown-arrow-clear">▶</span>
+                            </div>
+                            <ul class="dropdown-list" id="dropdown-list-clear" style="display: none;">
+                                ${savedBackgroundImages.map((image, index) => `<li class="dropdown-item-clear" id="dropdown-item-${index}-clear">${image.name}</li>`).join('')}
+                            </ul>
+                        </div>
                         <button id="clear-selected-bg" style="padding-bottom: 10px; margin-bottom: 5px; cursor: pointer; color: #ccc; width: 100%; border-bottom: 1px whitesmoke dotted;">Clear Background</button>
 
                         <button id="clear-all-bgs" style="color: #ff5555; cursor: pointer; width: 100%;">Clear All Saved Backgrounds</button>
                     </div>
                     <div style="border: 1px whitesmoke solid; padding: 5px; margin-bottom: 10px; display=flex; flex-direction: column;">
-                        <label for="slideshow-timer">Slideshow Timer (ms):</label>
-                        <input id="slideshow-timer" type="number" value="${slideshowTimer}" min="10000" style="margin-bottom: 10px; width: 100%;">
+                        <label for="slideshow-timer" style="color: var(--default-color)">Slideshow Timer (ms):</label>
+                        <input id="slideshow-timer" type="number" value="${slideshowTimer}" min="10000" style="margin-bottom: 10px; width: calc(100% - 6px); background: linear-gradient(0deg, #333, #444); color: #ddd; padding: 3px; border-radius: 5px; border: 1px solid whitesmoke;">
 
                         <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-                            <label>Toggle Slideshow:</label>
+                            <label style="color: var(--default-color)">Toggle Slideshow:</label>
                             <div id="slideshow-toggle" class="custom-slider ${slideshowEnabled ? "active" : ""}">
                                 <div class="slider-thumb"></div>
                             </div>
@@ -143,6 +258,45 @@
             document.getElementById('remove-uploaded-file').addEventListener('click', removeUploadedFile);
             document.getElementById('slideshow-timer').addEventListener('input', updateSlideshowTimer);
             document.getElementById('slideshow-toggle').addEventListener('click', toggleSlideshow);
+
+            // Apply Dropdown
+            initDropdown({
+                headerId: 'dropdown-header-apply',
+                listId: 'dropdown-list-apply',
+                arrowId: 'dropdown-arrow-apply',
+                selectedValueId: 'selected-value-apply',
+                itemClass: 'dropdown-item-apply',
+                onItemSelect: (value, name) => {
+                    selectedImageApply = value;
+                    console.log(`Selected Apply Background: ${name}`);
+                },
+                re: false,
+            });
+
+            // Clear Dropdown
+            initDropdown({
+                headerId: 'dropdown-header-clear',
+                listId: 'dropdown-list-clear',
+                arrowId: 'dropdown-arrow-clear',
+                selectedValueId: 'selected-value-clear',
+                itemClass: 'dropdown-item-clear',
+                onItemSelect: (value, name) => {
+                    console.log(`Selected Clear Background: ${name}`);
+                },
+                re: false,
+            });
+
+            if (!savedBackgroundImages.length) {
+                const dropdownListApply = document.getElementById('dropdown-list-apply');
+                const selectedValueApply = document.getElementById('selected-value-apply');
+                const dropdownListClear = document.getElementById('dropdown-list-clear');
+                const selectedValueClear = document.getElementById('selected-value-clear');
+
+                dropdownListApply.innerHTML = '<li class="dropdown-item"></li>';
+                selectedValueApply.textContent = 'No backgrounds saved';
+                dropdownListClear.innerHTML = '<li class="dropdown-item"></li>';
+                selectedValueClear.textContent = 'No backgrounds saved';
+            }
 
             addHoverEffect(
                 document.getElementById('close-menu'),
@@ -179,40 +333,6 @@
                 { color: '#d41919', filter: 'brightness(1.5)' },
                 { color: '#ff5555', filter: 'brightness(1)' }
             );
-
-            const style = document.createElement('style');
-            style.textContent = `
-            .custom-slider {
-                position: relative;
-                width: 50px;
-                height: 25px;
-                background: #ccc;
-                border-radius: 15px;
-                cursor: pointer;
-                transition: background 0.3s;
-            }
-
-            .custom-slider.active {
-                background: #28a745; /* Green when active */
-            }
-
-            .slider-thumb {
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                width: 21px;
-                height: 21px;
-                background: white;
-                border-radius: 50%;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                transition: left 0.3s;
-            }
-
-            .custom-slider.active .slider-thumb {
-                left: 25px; /* Position for the active state */
-            }`;
-
-            document.head.appendChild(style);
         }
     };
 
@@ -226,7 +346,7 @@
 
         // Update the HTML
         const label = document.getElementById('opacity-label');
-        label.outerHTML = `<label for="opacity-slider" id="opacity-label">Torn Opacity: ${opacity}</label>`;
+        label.outerHTML = `<label for="opacity-slider" id="opacity-label" style="color: var(--default-color)">Torn Opacity: ${opacity}</label>`;
     };
 
     const saveBackground = () => {
@@ -297,18 +417,105 @@
     };
 
     const updateBackgroundDropdown = () => {
-        const selectElement = document.getElementById('select-bg');
-        selectElement.innerHTML = savedBackgroundImages.length
-            ? savedBackgroundImages.map((images, index) => `<option value="${images.url}">${images.name}</option>`).join('') : '<option value="">No backgrounds saved</option>';
-        const clearElement = document.getElementById('clear-bg');
-        clearElement.innerHTML = savedBackgroundImages.length
-            ? savedBackgroundImages.map((images, index) => `<option value="${images.name}">${images.name}</option>`).join('') : '<option value="">No saved backgrounds to remove</option>';
+        const dropdownHeaderApply = document.getElementById('dropdown-header-apply');
+        const dropdownListApply = document.getElementById('dropdown-list-apply');
+        const dropdownArrowApply = document.getElementById('dropdown-arrow-apply');
+        const selectedValueApply = document.getElementById('selected-value-apply');
+
+        const dropdownHeaderClear = document.getElementById('dropdown-header-clear');
+        const dropdownListClear = document.getElementById('dropdown-list-clear');
+        const dropdownArrowClear = document.getElementById('dropdown-arrow-clear');
+        const selectedValueClear = document.getElementById('selected-value-clear');
+
+
+        if (savedBackgroundImages.length) {
+            dropdownListApply.innerHTML = savedBackgroundImages
+                .map((image, index) => `<li class="dropdown-item-apply" data-value="${image.url}" id="dropdown-item-${index}-apply">${image.name}</li>`).join('');
+            dropdownListClear.innerHTML = savedBackgroundImages
+                .map((image, index) => `<li class="dropdown-item-clear" id="dropdown-item-${index}-clear">${image.name}</li>`).join('');
+            selectedValueApply.textContent = 'Select Background';
+            selectedValueClear.textContent = 'Remove a Background';
+        } else {
+            dropdownListApply.innerHTML = '<li class="dropdown-item"></li>';
+            selectedValueApply.textContent = 'No backgrounds saved';
+            dropdownListClear.innerHTML = '<li class="dropdown-item"></li>';
+            selectedValueClear.textContent = 'No backgrounds saved';
+        }
+
+        const updateDropdown = ({
+            headerId,
+            listId,
+            arrowId,
+            selectedValueId,
+            itemClass,
+            placeholderText,
+            onItemSelect
+        }) => {
+            const dropdownHeader = document.getElementById(headerId);
+            const dropdownList = document.getElementById(listId);
+            const dropdownArrow = document.getElementById(arrowId);
+            const selectedValue = document.getElementById(selectedValueId);
+
+            // Update dropdown list items
+            if (savedBackgroundImages.length) {
+                if (headerId === 'dropdown-header-apply') {
+                    dropdownList.innerHTML = savedBackgroundImages.map((image, index) => `<li class="dropdown-item-apply" data-value="${image.url}" id="dropdown-item-${index}-apply">${image.name}</li>`).join('');
+                } else if (headerId === 'dropdown-header-clear') {
+                    dropdownList.innerHTML = savedBackgroundImages.map((image, index) => `<li class="dropdown-item-clear" id="dropdown-item-${index}-clear">${image.name}</li>`).join('');
+                }
+
+                selectedValue.textContent = placeholderText;
+            } else {
+                dropdownList.innerHTML = `<li class="${itemClass}"></li>`;
+                selectedValue.textContent = 'No backgrounds saved';
+            }
+
+            // Re-initialize the dropdown
+            initDropdown({
+                headerId,
+                listId,
+                arrowId,
+                selectedValueId,
+                itemClass,
+                onItemSelect,
+                re: true,
+            });
+        };
+
+        // reset apply state
+        selectedImageApply = null;
+
+        // Update the "Apply Background" dropdown
+        updateDropdown({
+            headerId: 'dropdown-header-apply',
+            listId: 'dropdown-list-apply',
+            arrowId: 'dropdown-arrow-apply',
+            selectedValueId: 'selected-value-apply',
+            itemClass: 'dropdown-item-apply',
+            placeholderText: 'Select Background',
+            onItemSelect: (value, name) => {
+                selectedImageApply = value;
+                console.log(`Selected Apply Background: ${name}`);
+            },
+        });
+
+        // Update the "Remove Background" dropdown
+        updateDropdown({
+            headerId: 'dropdown-header-clear',
+            listId: 'dropdown-list-clear',
+            arrowId: 'dropdown-arrow-clear',
+            selectedValueId: 'selected-value-clear',
+            itemClass: 'dropdown-item-clear',
+            placeholderText: 'Remove a Background',
+            onItemSelect: (value, name) => {
+                console.log(`Selected Clear Background: ${name}`);
+            },
+        });
     };
 
     const applySelectedBackground = () => {
-        const selectedImage = document.getElementById('select-bg').value;
-        if (selectedImage) {
-            backgroundImage = selectedImage;
+        if (selectedImageApply) {
+            backgroundImage = selectedImageApply;
             localStorage.setItem("backgroundImage", backgroundImage);
             if (slideshowEnabled) {
                 const slider = document.getElementById('slideshow-toggle');
@@ -321,7 +528,7 @@
     };
 
     const clearSelectedBackground = () => {
-        const selectedBackgroundName = document.getElementById("clear-bg").value.trim();
+        const selectedBackgroundName = document.getElementById('selected-value-clear').textContent;
 
         const targetIndex = savedBackgroundImages.findIndex(
             (background) => background.name.toLowerCase() === selectedBackgroundName.toLowerCase()
@@ -360,8 +567,8 @@
         // Replace the button with Yes and No options
         clearButton.outerHTML = `
         <div id="clear-confirmation" style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px;">
-            <button id="confirm-clear" style="flex: 1; background: #ff5555; color: white; border: none; cursor: pointer;">Yes</button>
-            <button id="cancel-clear" style="flex: 1; background: #28a745; color: white; border: none; cursor: pointer;">No</button>
+            <button id="confirm-clear" style="flex: 1; background: #ff5555; color: var(--default-color); border: none; cursor: pointer;">Yes</button>
+            <button id="cancel-clear" style="flex: 1; background: #28a745; color: var(--default-color); border: none; cursor: pointer;">No</button>
         </div>`;
 
         // Add Yes/No buttons
@@ -512,12 +719,49 @@
         }
     }
 
-    document.addEventListener("keydown", (e) => {
-        if (e.ctrlKey && e.key === "b") { // Ctrl + B to toggle
-            const panel = document.getElementById("background-settings");
-            if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+    const initDropdown = ({ headerId, listId, arrowId, selectedValueId, itemClass, onItemSelect, re }) => {
+        const dropdownHeader = document.getElementById(headerId);
+        const dropdownList = document.getElementById(listId);
+        const dropdownArrow = document.getElementById(arrowId);
+        const selectedValue = document.getElementById(selectedValueId);
+
+        if (!re){
+            // Toggle dropdown visibility
+            dropdownHeader.addEventListener('click', () => {
+                const isVisible = dropdownList.style.display === 'block';
+                dropdownList.style.display = isVisible ? 'none' : 'block';
+                dropdownArrow.classList.toggle('open', !isVisible);
+            });
         }
-    });
+
+        // Handle item selection
+        document.querySelectorAll(`.${itemClass}`).forEach((item) => {
+            item.addEventListener('click', (e) => {
+                const value = e.target.getAttribute('data-value');
+                const name = e.target.textContent;
+
+                // Update selected value
+                selectedValue.textContent = name;
+
+                // Custom item select logic
+                if (onItemSelect) onItemSelect(value, name);
+
+                // Close dropdown
+                dropdownList.style.display = 'none';
+                dropdownArrow.classList.remove('open');
+            });
+        });
+
+        // Close dropdown if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!dropdownHeader.contains(e.target)) {
+                dropdownList.style.display = 'none';
+                dropdownArrow.classList.remove('open');
+            }
+        });
+
+        return { dropdownHeader, dropdownList, dropdownArrow, selectedValue };
+    };
 
     injectHTML();
     setBackground();
